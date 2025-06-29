@@ -1,0 +1,180 @@
+object TestComPort: TTestComPort
+  Left = 0
+  Top = 0
+  Caption = 'TestComPort'
+  ClientHeight = 556
+  ClientWidth = 454
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = 'Segoe UI'
+  Font.Style = []
+  OnCreate = FormCreate
+  TextHeight = 15
+  object gbxCommands: TGroupBox
+    Left = 8
+    Top = 8
+    Width = 138
+    Height = 145
+    Caption = 'Actions'
+    TabOrder = 0
+    object btnOpen: TButton
+      Left = 13
+      Top = 24
+      Width = 113
+      Height = 33
+      Caption = 'Open'
+      TabOrder = 0
+      OnClick = btnOpenClick
+    end
+    object btnClose: TButton
+      Left = 13
+      Top = 63
+      Width = 113
+      Height = 33
+      Caption = 'Close'
+      Enabled = False
+      TabOrder = 1
+      OnClick = btnCloseClick
+    end
+    object btnClrRcv: TButton
+      Left = 13
+      Top = 104
+      Width = 113
+      Height = 33
+      Caption = ' Clear receive'
+      TabOrder = 2
+      OnClick = btnClrRcvClick
+    end
+  end
+  object gbxAvailablePorts: TGroupBox
+    Left = 338
+    Top = 72
+    Width = 97
+    Height = 79
+    Caption = 'COM Port'
+    TabOrder = 1
+    object cbxComPorts: TComboBox
+      Left = 8
+      Top = 21
+      Width = 78
+      Height = 23
+      TabOrder = 0
+      OnKeyPress = cbxComPortsKeyPress
+    end
+    object btnScanComPorts: TButton
+      Left = 8
+      Top = 50
+      Width = 78
+      Height = 25
+      Caption = 'Rescan'
+      TabOrder = 1
+      OnClick = btnScanComPortsClick
+    end
+  end
+  object gbxSend: TGroupBox
+    Left = 147
+    Top = 72
+    Width = 185
+    Height = 81
+    Caption = ' Send command'
+    TabOrder = 2
+    object edtCmd: TEdit
+      Left = 13
+      Top = 18
+      Width = 164
+      Height = 23
+      TabOrder = 0
+      OnKeyPress = edtCmdKeyPress
+    end
+    object bntSend: TButton
+      Left = 13
+      Top = 47
+      Width = 164
+      Height = 26
+      Caption = ' Send'
+      TabOrder = 1
+      OnClick = bntSendClick
+    end
+  end
+  object gbxRcv: TGroupBox
+    Left = 8
+    Top = 159
+    Width = 427
+    Height = 287
+    Caption = 'Receive'
+    TabOrder = 3
+    object mmoMessage: TMemo
+      Left = 13
+      Top = 24
+      Width = 403
+      Height = 249
+      Lines.Strings = (
+        '')
+      ScrollBars = ssBoth
+      TabOrder = 0
+    end
+  end
+  object cbxOpt: TCheckBox
+    Left = 152
+    Top = 32
+    Width = 97
+    Height = 17
+    Caption = 'Options'
+    TabOrder = 4
+  end
+  object GroupBox1: TGroupBox
+    Left = 8
+    Top = 442
+    Width = 169
+    Height = 73
+    TabOrder = 5
+    object lblDTR: TLabel
+      Left = 15
+      Top = 47
+      Width = 3
+      Height = 15
+    end
+    object lblRTS: TLabel
+      Left = 65
+      Top = 47
+      Width = 3
+      Height = 15
+    end
+    object pnlDTR: TPanel
+      Left = 8
+      Top = 16
+      Width = 41
+      Height = 25
+      BevelInner = bvRaised
+      Caption = 'DTR'
+      TabOrder = 0
+      OnClick = pnlDTRClick
+    end
+    object pnlRTS: TPanel
+      Left = 55
+      Top = 16
+      Width = 41
+      Height = 25
+      BevelInner = bvRaised
+      Caption = 'RTS'
+      TabOrder = 1
+      OnClick = pnlDTRClick
+    end
+    object cbxCRLF: TCheckBox
+      Left = 102
+      Top = 24
+      Width = 51
+      Height = 17
+      Caption = 'CR+LF'
+      TabOrder = 2
+    end
+  end
+  object Timer1: TTimer
+    Interval = 20
+    OnTimer = Timer1Timer
+    Left = 296
+    Top = 488
+  end
+end

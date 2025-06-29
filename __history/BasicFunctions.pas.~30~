@@ -1,0 +1,156 @@
+﻿{*******************************************************************************
+ * Unit Name  : BasicFunctions
+ * Author     : Albert Ziatdinov
+ * Created    : 20.11.2022
+ * Purpose    : Provides basic COM port communication functions (open, send, receive, close)
+ * Description:
+ *   - OpenCOM: opens and configures a serial COM port.
+ *   - SendText: sends a string via COM port.
+ *   - ReadText: reads available data from COM port.
+ *   - CloseCOM: closes the COM port.
+ * Compatible : Delphi / RAD Studio
+ * Comment    : All methods use standard WinAPI functions.
+ *******************************************************************************}
+
+unit BasicFunctions;
+
+interface
+
+uses Windows,
+     Vcl.Dialogs,
+     Messages,
+     SysUtils,
+     Classes;
+
+const
+  ComBufferSize = 4096;                                           //set I/O buffer size like read only value
+
+type
+
+
+
+{*******************************************************************************
+ * TComPort class interface
+ *
+ * All functions are public methods of the TComPort class.
+ * Encapsulation is intentionally not used, as this is a minimal GUI example
+ * for testing basic COM port functionality.
+ *******************************************************************************}
+TComPort = class(TComponent)
+ private
+ public
+  FHandle:  THandle;
+  function  OpenCOM (port : pchar)         : Boolean;
+  procedure SendText(sendCmd: AnsiString);
+  function  ReadText()                     : String;
+  function  CloseCOM                       : Boolean;
+ end;
+
+var
+  ComHandle: THandle;
+
+implementation
+
+{*******************************************************************************
+ *
+ *Create and open port
+ *
+ *******************************************************************************}
+function TComPort.OpenCOM (port : pchar) : Boolean;
+var
+  DCB:TDCB;
+  Timeouts:TCommTimeouts;
+begin
+  Result  := False;
+  FHandle := CreateFile(PChar(port), GENERIC_READ or GENERIC_WRITE,
+             0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL {FILE_FLAG_OVERLAPPED}, 0);
+  if (FHandle = INVALID_HANDLE_VALUE) or (FHandle = 0) then
+    Exit;
+
+  PurgeComm(FHandle, Purge_TXabort or Purge_RXabort or Purge_TXclear or Purge_RXclear); //Clear the selected buffer
+
+  //Configuration of COM port parameters
+  if not (Windows.GetCommState(FHandle,DCB)) then
+    Exit;
+  DCB.BaudRate := 115200;
+  DCB.Parity   := NOPARITY;
+  DCB.ByteSize := 8;
+  DCB.StopBits := ONESTOPBIT;                        //or can be TWOSTOPBITS;
+  DCB.Flags    := DCB.Flags or DTR_CONTROL_ENABLE;
+  if not(Windows.SetCommState(FHandle,DCB)) then
+    Exit;
+  if Not SetupComm(FHandle,ComBufferSize,ComBufferSize) then
+    begin
+      ShowMessage('Buffer init error!!!');
+      CloseHandle(FHandle);
+      Exit;
+    end;
+  if GetCommTimeouts(FHandle,Timeouts) then
+    begin
+      Timeouts.ReadIntervalTimeout         :=MAXWORD;
+      Timeouts.ReadTotalTimeoutMultiplier  :=0;
+      Timeouts.ReadTotalTimeoutConstant    :=10;
+      Timeouts.WriteTotalTimeoutMultiplier :=0;
+      Timeouts.WriteTotalTimeoutConstant   :=10;
+      if not SetCommTimeouts(FHandle,Timeouts) then
+        Exit;
+    end
+  else
+    Exit;
+  if not(PurgeComm(FHandle, PURGE_TXABORT or PURGE_RXABORT or PURGE_TXCLEAR or PURGE_RXCLEAR)) then
+    Exit;
+ // EscapeCommFunction(FHandle, CLRRTS);
+  if not SetCommMask(FHandle, EV_RXCHAR) then
+     Exit;
+    EscapeCommFunction(FHandle, SETDTR);
+    EscapeCommFunction(FHandle, SETRTS);
+  SetCommMask(FHandle, EV_RXCHAR);               //Set the mask to trigger on the event "a byte received at the port"
+  Result:=True;
+end;
+
+
+{*******************************************************************************
+ *
+ *Send data
+ *
+ ******************************************************************************}
+procedure TComPort.SendText(sendCmd: AnsiString);
+var
+  dataPtr  : PByte;
+  bytesWrt : DWORD;
+begin
+  dataPtr  := PByte(PAnsiChar(sendCmd));
+  WriteFile(FHandle, dataPtr^, Length(sendCmd), bytesWrt, nil);
+end;
+
+
+{*******************************************************************************
+ *
+ *Receive data
+ *
+ ******************************************************************************}
+function TComPort.ReadText() :String;
+var
+  rcvBuf    : Array[1..ComBufferSize] of AnsiChar;
+  rcvTxt    : AnsiString;
+  bytesRead : DWORD;
+  cnt: DWORD;
+begin
+  Result  := '';
+  ReadFile(FHandle, rcvBuf, SizeOf(rcvBuf), bytesRead, nil);
+  rcvTxt  := '';
+  for cnt := 1 to BytesRead do rcvTxt := rcvTxt + rcvBuf[cnt];
+  Result  := TRIM(String(rcvTxt));   //löscht raus #13#10
+end;
+
+
+{*
+ *Close port************************************
+ ******************************************************************************}
+function TComPort.CloseCom: boolean; //закpыть поpт
+begin
+  Result := Windows.CloseHandle(FHandle);
+end;
+
+
+end.

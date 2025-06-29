@@ -1,0 +1,278 @@
+﻿{*******************************************************************************
+ * Unit Name  : AppTestComPort
+ * Author     : Albert Ziatdinov
+ * Created    : 20.11.2022
+ * Purpose    : Simple GUI tool for testing COM port communication
+ * Description:
+ *   - Provides a graphical interface for opening, closing, scanning,
+ *     sending, and receiving data through serial COM ports
+ *   - Uses TComPort class for low-level COM handling
+ *   - Reads available COM ports from Windows Registry
+ *   - Designed as a minimal example; no full encapsulation or error handling
+ * Compatible : Delphi / RAD Studio
+ * Comment    : For testing and educational purposes only
+ *******************************************************************************}
+
+unit AppTestComPort;
+
+interface
+
+uses
+  Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.StdCtrls,
+  Registry,
+  BasicFunctions,
+  OptionsPanel,
+  Vcl.ExtCtrls;
+
+ const
+  DefaultTerminator = #13#10;       //ASCII string terminator (CR + LF), used to end transmitted lines
+
+type
+
+  TTestComPort = class(TForm)
+    mmoMessage: TMemo;
+    btnOpen: TButton;
+    bntSend: TButton;
+    btnClose: TButton;
+    gbxCommands: TGroupBox;
+    gbxAvailablePorts: TGroupBox;
+    cbxComPorts: TComboBox;
+    btnScanComPorts: TButton;
+    edtCmd: TEdit;
+    gbxSend: TGroupBox;
+    gbxRcv: TGroupBox;
+    btnClrRcv: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure btnScanComPortsClick(Sender: TObject);
+    procedure cbxComPortsKeyPress(Sender: TObject; var Key: Char);
+    procedure btnOpenClick(Sender: TObject);
+    procedure AvailableComs();
+    procedure btnCloseClick(Sender: TObject);
+    procedure bntSendClick(Sender: TObject);
+    procedure edtCmdKeyPress(Sender: TObject; var Key: char);
+    procedure btnClrRcvClick(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
+  private
+    FComPort: TComPort;
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+
+var
+  TestComPort: TTestComPort;
+
+implementation
+
+{$R *.dfm}
+
+{*******************************************************************************
+ * Procedure : FormCreate
+ * Purpose   : Initializes the form and prepares the COM port list.
+ * Description:
+ *   - Instantiates the TComPort object.
+ *   - Loads available COM ports from the Windows Registry.
+ *   - Initializes the DTR panel and sets its default color.
+ ******************************************************************************}
+procedure TTestComPort.FormCreate(Sender: TObject);
+begin
+    FComPort := TComPort.Create(Self);  //Create an instance of the TComPort class
+    AvailableComs;                      //Read available COM ports from the system
+                                        //registry at startup
+    mmoMessage.Lines.Clear;
+end;
+
+
+{*******************************************************************************
+ * Procedure : btnScanComPortsClick
+ * Purpose   : Rescans available COM ports in the system.
+ * Description:
+ *   - Invokes the AvailableComs procedure to refresh the port list
+ *     by querying the system registry.
+ ******************************************************************************}
+procedure TTestComPort.btnScanComPortsClick(Sender: TObject);
+begin
+     AvailableComs; //Query the OS registry to get
+                    //information about the COM ports available in the system
+end;
+
+
+{*******************************************************************************
+ * Procedure : cbxComPortsKeyPress
+ * Purpose   : Prevents manual keyboard input in the COM port ComboBox.
+ * Description:
+ *   - Disables typing in the ComboBox to ensure selection is made
+ *     only from the list of detected ports.
+ ******************************************************************************}
+procedure TTestComPort.cbxComPortsKeyPress (Sender: TObject; var Key: Char);
+begin
+     key := chr(0);
+end;
+
+
+{*******************************************************************************
+ * Procedure : AvailableComs
+ * Purpose   : Reads available COM ports from the Windows Registry.
+ * Description:
+ *   - Accesses 'HARDWARE\DEVICEMAP\SERIALCOMM' key.
+ *   - Populates the ComboBox with human-readable port names.
+ *   - Sets the first port as default selection.
+ ******************************************************************************}
+procedure TTestComPort.AvailableComs();
+var
+  reg:  TRegistry;
+  cnt:  Integer;
+begin
+   reg := TRegistry.Create;
+  try
+    reg.RootKey := HKEY_LOCAL_MACHINE;
+    // It's necessary to use OpenKeyReadOnly, otherwise the list of ports won't open...
+    if Reg.OpenKeyReadOnly('HARDWARE\DEVICEMAP\SERIALCOMM') then
+    begin
+      reg.GetValueNames(cbxComPorts.Items);
+      for cnt := 0 to cbxComPorts.Items.Count - 1 do
+          cbxComPorts.Items[cnt] := reg.ReadString(cbxComPorts.Items[cnt]);
+    end;
+    cbxComPorts.Sorted := true;
+    cbxComPorts.Text := cbxComPorts.Items[0];
+  finally
+    reg.Free;
+  end;
+end;
+
+
+{*******************************************************************************
+ * Procedure : btnOpenClick
+ * Purpose   : Opens the selected COM port.
+ * Description:
+ *   - Uses the TComPort instance to open the selected port.
+ *   - Displays status messages in the memo.
+ *   - Updates the enabled state of buttons accordingly.
+ ******************************************************************************}
+procedure TTestComPort.btnOpenClick(Sender: TObject);
+ var
+   comPortNum: String;
+begin
+   comPortNum := cbxComPorts.Text;
+    if FComPort.OpenCOM(PChar(comPortNum)) then
+      begin
+         mmoMessage.Lines.Add('Port ' + PChar(comPortNum) + ' connected successfully!');
+      end
+    else mmoMessage.Lines.Add('Port ' + PChar(comPortNum) + 'connection error!');
+   btnOpen.Enabled  := False;
+   btnClose.Enabled := True;
+end;
+
+
+{*******************************************************************************
+ * Procedure : bntSendClick
+ * Purpose   : Sends the text command over the active COM port.
+ * Description:
+ *   - Sends the text from the input field followed by a line terminator
+ *     (CRLF by default) to the connected COM port.
+ *   - Disables the Send button until response is received.
+ ******************************************************************************}
+procedure TTestComPort.bntSendClick(Sender: TObject);
+begin
+     bntSend.Enabled := False;
+     FComPort.SendText(AnsiString(edtCmd.Text + DefaultTerminator));    //Send user input from the GUI to the COM port
+end;
+
+
+{*******************************************************************************
+ * Procedure : btnCloseClick
+ * Purpose   : Closes the currently open COM port.
+ * Description:
+ *   - Uses TComPort to safely close the port.
+ *   - Displays confirmation or error in the message memo.
+ *   - Enables/disables the Open/Close buttons accordingly.
+ ******************************************************************************}
+procedure TTestComPort.btnCloseClick(Sender: TObject);
+begin
+ if FComPort.CloseCom() then
+   begin
+     mmoMessage.Lines.Add(cbxComPorts.Text +' is closed');
+     btnOpen.Enabled  := True;
+     btnClose.Enabled := False;
+   end
+ else
+   begin
+     mmoMessage.Lines.Add(cbxComPorts.Text +' close Error');
+   end;
+end;
+
+
+{*******************************************************************************
+ * Procedure : edtCmdKeyPress
+ * Purpose   : Sends data when Enter key is pressed in the command field.
+ * Description:
+ *   - Triggers the Send button click when user presses Enter key
+ *     in the text input field.
+ ******************************************************************************}
+procedure TTestComPort.edtCmdKeyPress(Sender: TObject; var Key: char);
+begin
+  if key=#13 then
+    begin
+     bntSend.Enabled := False;
+     bntSend.Click;
+    end;
+end;
+
+
+{*******************************************************************************
+ * Procedure : btnClrRcvClick
+ * Purpose   : Clears the received data and buffers.
+ * Description:
+ *   - Clears the input/output buffers of the COM port.
+ *   - Clears the contents of the message display memo.
+ ******************************************************************************}
+procedure TTestComPort.btnClrRcvClick(Sender: TObject);
+begin
+  PurgeComm(FComPort.FHandle, Purge_TXabort or Purge_RXabort or Purge_TXclear or Purge_RXclear);
+  mmoMessage.Lines.Clear;
+end;
+
+
+{*******************************************************************************
+ * Procedure : Timer1Timer
+ * Purpose   : Periodically checks for incoming data on the COM port.
+ * Description:
+ *   - If the port is open, checks the number of bytes available.
+ *   - Reads available data and appends it to the message memo.
+ *   - Reactivates the Send button after receiving a response.
+ ******************************************************************************}
+procedure TTestComPort.Timer1Timer(Sender: TObject);
+var
+  Errors: DWORD;
+  Status: TComStat;
+  BytesRead: DWORD;
+  Buffer: array[0..255] of AnsiChar;
+begin
+  if FComPort.FHandle = INVALID_HANDLE_VALUE then Exit;
+  //Check if there is incoming data
+   ClearCommError(FComPort.FHandle, Errors, @Status);
+    if Status.cbInQue > 0 then
+     begin
+      ZeroMemory(@Buffer, SizeOf(Buffer));
+       if ReadFile(FComPort.FHandle, Buffer, SizeOf(Buffer) - 1, BytesRead, nil) and (BytesRead > 0) then
+        begin
+         Buffer[BytesRead] := #0;
+         //Add the received data as a string to the Memo
+        mmoMessage.Lines.Add(String(AnsiString(Buffer)));
+       end;
+    end;
+
+  if not (bntSend.Enabled) then bntSend.Enabled := true;
+end;
+
+end.

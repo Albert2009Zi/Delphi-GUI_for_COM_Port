@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>1899.12.30 00:00:00.000.221,=C:\dev\Delphi\Projects\MyComPort2\uCOMPort.pas</Transaction>
+    <Transaction>1899.12.30 00:00:00.000.481,C:\dev\Delphi\Projects\MyComPort2\uCOMPort.pas=</Transaction>
+    <Transaction>1899.12.30 00:00:00.000.506,=C:\dev\Delphi\Projects\MyComPort2\uCOMPort.pas</Transaction>
+    <Transaction>1899.12.30 00:00:00.000.390,C:\dev\Delphi\Projects\MyComPort2\uCOMPort.pas=</Transaction>
+  </Transactions>
+</BorlandProject>

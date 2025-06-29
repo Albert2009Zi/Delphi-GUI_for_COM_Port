@@ -30,7 +30,8 @@ When a valid command is received, the board performs the corresponding action an
 
 If the message sent from the GUI doesn't match any known command, the board treats it as arbitrary text and responds with an error message along with an echo:
 
-- `Unknown command: <your input>`
+- `It is not a command...
+   ECHO: <your input>`
 
 ---
 
